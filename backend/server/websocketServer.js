@@ -7,7 +7,7 @@ const setupWebSocketServer = (server) => {
   const wss = new WebSocket.Server({ 
     server,
     // Add path for the WebSocket server to match client connection
-    path: '/',
+    noServer: false,
     // Allow client to include credentials
     verifyClient: (info, cb) => {
       // Always accept the connection initially, we'll validate token after connection

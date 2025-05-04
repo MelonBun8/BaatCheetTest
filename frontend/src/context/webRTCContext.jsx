@@ -28,9 +28,9 @@ export const WebRTCProvider = ({ children }) => {
 
     // Create new WebSocket connection with correct URL format
     // Use window.location to dynamically determine the host
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const protocol = window.location.protocol === 'http:' ? 'wss:' : 'ws:';
     const host = window.location.hostname;
-    const port = process.env.NODE_ENV === 'production' ? window.location.port : '5000';
+    const port = '8000';
     const socketUrl = `${protocol}//${host}:${port}?token=${token}`;
     
     console.log('Connecting to WebSocket at:', socketUrl);
@@ -376,11 +376,14 @@ export const WebRTCProvider = ({ children }) => {
       const recipientId = activeCall.initiator ? 
         activeCall.recipientId : activeCall.callerId;
       
+      console.log('Sending ICE candidate to', recipientId);
       ws.current.send(JSON.stringify({
         type: 'candidate',
         candidate: event.candidate,
         recipientId
       }));
+    } else if (!event.candidate) {
+      console.log('All ICE candidates have been sent');
     }
   };
 
