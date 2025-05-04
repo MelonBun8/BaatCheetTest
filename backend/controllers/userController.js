@@ -3,6 +3,26 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const validator = require("validator");
 
+const getAllUsers = async (req, res) => {
+    try {
+      // Exclude password field from results
+      const users = await User.find({}).select('-password');
+      console.log('Fetched all users!')
+
+      return res.status(200).json({
+        
+        success: true,
+        users
+      });
+    } catch (error) {
+      return res.status(500).json({
+        success: false,
+        message: error.message
+      });
+    }
+  };
+  
+
 const registerUser = async(req,res)=> {
     try{
         let { name, email, password, confirmPassword } = req.body;
@@ -97,4 +117,4 @@ const login = async (req,res) => {
 
 }
 
-module.exports={registerUser,login}
+module.exports={registerUser,login,getAllUsers}

@@ -15,9 +15,25 @@ connectDB();
 
 const app = express();
 
-// Enable CORS for the React app
+// Enable CORS for the React app (ALLOW ANY PORT on localhost)
 app.use(cors({
-  origin: 'http://localhost:3000', // or your frontend URL
+  origin: function(origin, callback) {
+    // Allow requests with no origin (like mobile apps, curl requests)
+    if(!origin) return callback(null, true);
+    
+    // Check if origin is localhost (regardless of port)
+    if(origin.startsWith('http://localhost:')) {
+      return callback(null, true);
+    }
+    
+    // // (LATER< FOR PRODUCTION) production, you might want to add specific allowed origins
+    // const allowedOrigins = ['https://yourdomain.com', 'https://app.yourdomain.com'];
+    // if(allowedOrigins.indexOf(origin) !== -1) {
+    //   return callback(null, true);
+    // }
+    
+    callback(new Error('Not allowed by CORS'));
+  },
   credentials: true
 }));
 
