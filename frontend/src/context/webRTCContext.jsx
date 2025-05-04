@@ -22,12 +22,19 @@ export const WebRTCProvider = ({ children }) => {
     if (!user || !token) return;
 
     // Close any existing connection
-    if (ws.current) {
+    if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       ws.current.close();
     }
 
-    // Create new WebSocket connection
-    const socketUrl = `ws://localhost:5000?token=${token}`;
+    // Create new WebSocket connection with correct URL format
+    // Use window.location to dynamically determine the host
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.hostname;
+    const port = process.env.NODE_ENV === 'production' ? window.location.port : '5000';
+    const socketUrl = `${protocol}//${host}:${port}?token=${token}`;
+    
+    console.log('Connecting to WebSocket at:', socketUrl);
+    
     ws.current = new WebSocket(socketUrl);
 
     ws.current.onopen = () => {
@@ -72,7 +79,9 @@ export const WebRTCProvider = ({ children }) => {
     if (ws.current && ws.current.readyState === WebSocket.OPEN) {
       connectionCheckTimer.current = setInterval(() => {
         try {
-          ws.current.send(JSON.stringify({ type: 'ping' }));
+          if (ws.current.readyState === WebSocket.OPEN) {
+            ws.current.send(JSON.stringify({ type: 'ping' }));
+          }
         } catch (error) {
           console.error('Error sending ping:', error);
         }
@@ -90,7 +99,7 @@ export const WebRTCProvider = ({ children }) => {
     switch (data.type) {
       case 'online-users':
         console.log('Online users updated:', data.users);
-        setOnlineUsers(data.users);
+        setOnlineUsers(data.users || []);
         break;
       case 'offer':
         console.log('Received call offer from:', data.callerId);
@@ -200,10 +209,12 @@ export const WebRTCProvider = ({ children }) => {
   const handleIncomingCall = async (data) => {
     if (callStatus !== 'idle') {
       // Send busy signal if already in a call
-      ws.current.send(JSON.stringify({
-        type: 'busy',
-        recipientId: data.callerId
-      }));
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({
+          type: 'busy',
+          recipientId: data.callerId
+        }));
+      }
       return;
     }
 
@@ -254,11 +265,13 @@ export const WebRTCProvider = ({ children }) => {
       const answer = await pc.current.createAnswer();
       await pc.current.setLocalDescription(answer);
 
-      ws.current.send(JSON.stringify({
-        type: 'answer',
-        sdp: pc.current.localDescription.sdp,
-        recipientId: activeCall.callerId
-      }));
+      if (ws.current && ws.current.readyState === WebSocket.OPEN) {
+        ws.current.send(JSON.stringify({
+          type: 'answer',
+          sdp: pc.current.localDescription.sdp,
+          recipientId: activeCall.callerId
+        }));
+      }
 
       setCallStatus('ongoing');
     } catch (error) {
@@ -359,7 +372,7 @@ export const WebRTCProvider = ({ children }) => {
   };
 
   const handleICECandidate = (event) => {
-    if (event.candidate && activeCall && ws.current) {
+    if (event.candidate && activeCall && ws.current && ws.current.readyState === WebSocket.OPEN) {
       const recipientId = activeCall.initiator ? 
         activeCall.recipientId : activeCall.callerId;
       

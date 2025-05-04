@@ -32,31 +32,6 @@ export const AuthProvider = ({ children }) => {
     initializeAuth();
   }, []);
 
-  // Handle Google OAuth callback
-  useEffect(() => {
-    const handleGoogleAuth = () => {
-      const urlParams = new URLSearchParams(window.location.search);
-      const token = urlParams.get('token');
-      const userData = urlParams.get('user');
-
-      if (token && userData) {
-        try {
-          const user = JSON.parse(decodeURIComponent(userData));
-          authService.handleGoogleCallback(token, user);
-          setUser(user);
-          setToken(token);
-          setIsAuthenticated(true);
-          window.history.replaceState({}, document.title, window.location.pathname);
-        } catch (err) {
-          console.error("Google auth callback error:", err);
-          setError("Failed to process Google authentication");
-        }
-      }
-    };
-
-    handleGoogleAuth();
-  }, []);
-
   const register = async (formData) => {
     setActionLoading(true);
     setError(null);
@@ -65,7 +40,7 @@ export const AuthProvider = ({ children }) => {
       const response = await authService.register(formData);
       return response;
     } catch (err) {
-      const errorMessage = err.message || err.response?.data?.message || 'Registration failed';
+      const errorMessage = err.message || 'Registration failed';
       setError(errorMessage);
       throw errorMessage;
     } finally {
@@ -92,8 +67,8 @@ export const AuthProvider = ({ children }) => {
     } catch (err) {
       // Handle different error formats
       let errorMessage = 'Login failed';
-      if (err.response) {
-        errorMessage = err.response.data?.message || err.response.statusText;
+      if (typeof err === 'string') {
+        errorMessage = err;
       } else if (err.message) {
         errorMessage = err.message;
       }
